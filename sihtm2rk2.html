@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Sihtmärk</title>
+<style type="text/css">
+body {background-color: #0A24A9;}
+#pilt {height:100%; position:fixed;}
+#d1 {width:150px; height:150px; position:fixed; left:500px; top:150px; border-radius:50%;}
+.m2rk {border-radius:50%; position:absolute;}
+div:nth-child(1) {height:100%; width:100%; background-color:white;}
+div:nth-child(2) {height:90%; width:90%; background-color:red; left:5%; top:5%;}
+div:nth-child(3) {height:70%; width:70%; background-color:white; left:15%; top:15%;}
+div:nth-child(4) {height:50%; width:50%; background-color:red; left:25%; top:25%;}
+div:nth-child(5) {height:30%; width:30%; background-color:white; left:35%; top:35%;}
+div:nth-child(6) {height:10%; width:10%; background-color:red; left:45%; top:45%;}
+</style>
+</head>
+<body>
+<img id="pilt" src="pics/duck.png" alt="part"/>
+<div id= "d1">
+	<div class="m2rk">	
+	</div>
+	<div class="m2rk">	
+	</div>
+	<div class="m2rk">
+	</div>
+	<div class="m2rk">
+	</div>
+	<div class="m2rk">
+	</div>
+	<div class="m2rk">
+	</div>
+</div>
+<script>
+window.onload = function() {
+	document.getElementById("d1").addEventListener("click", function() {d1.style.left=(Math.random()*(window.innerWidth-150)) + "px";
+	d1.style.top=(Math.random()*(window.innerHeight-150)) + "px"});
+}
+</script>
+</body>
+</html>
