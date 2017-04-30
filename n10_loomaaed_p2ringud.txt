@@ -1,0 +1,7 @@
+CREATE TABLE pulmas_loomaaed (id integer PRIMARY KEY auto_increment, nimi varchar(50), vanus integer, liik varchar(50), puur integer);
+INSERT INTO pulmas_loomaaed VALUES ('1', 'Tonna', '4', 'tiiger', '3'), ('2', 'Miisu', '2', 'lõvi', '2'), ('3', 'Sebastian', '3', 'Kassikakk', '1'), 
+('4', 'Ollu', '2', 'tiiger', '4'), ('5', 'Karim', '6', 'lõvi', '2'), ('6', 'Öku', '5', 'kodukakk', '1'), ('7', 'Tuutu', '17', 'elevant', '10');
+SELECT nimi, puur FROM pulmas_loomaaed WHERE puur='2';
+SELECT MAX(vanus) AS vanim, MIN(vanus) AS noorim FROM pulmas_loomaaed;
+SELECT COUNT(id) AS loomade_arv, puur FROM pulmas_loomaaed GROUP BY puur;
+UPDATE pulmas_loomaaed SET vanus=vanus+1;
