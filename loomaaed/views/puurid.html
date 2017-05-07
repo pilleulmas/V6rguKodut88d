@@ -1,0 +1,10 @@
+<?php if (!empty($_SESSION["puurid"])) : ?>
+    <?php foreach ($_SESSION["puurid"] as $puuriNr => $puurisOlevadLoomad): ?>
+        <div class="puur">
+            <h4>Puur nr. <?php echo $puuriNr?></h4>
+            <?php for ($i=1;$i<count($puurisOlevadLoomad);$i+=2): ?>
+                <img src="<?php echo $puurisOlevadLoomad[$i] ?>">
+            <?php endfor; ?>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
