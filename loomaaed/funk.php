@@ -12,7 +12,37 @@ function connect_db(){
 }
 
 function logi(){
-	// siia on vaja funktsionaalsust (13. nädalal)
+	if (isset($_POST['user'])) {
+		include_once('views/puurid.html');
+	}
+	if (isset($_SERVER['REQUEST_METHOD'])) {
+		if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		  	$errors = array();
+		  	if (empty($_POST['user']) || empty($_POST['pass'])) {
+		  		if(empty($_POST['user'])) {
+			    	$errors[] = "kasutajanimi on puudu";
+				}
+				if(empty($_POST['pass'])) {
+					$errors[] = "parool on puudu";
+				} 
+		  	} else {
+		  		global $connection;
+		  		$username = mysqli_real_escape_string($connection, $_POST["user"]);
+		  		$passw = mysqli_real_escape_string($connection, $_POST["pass"]);
+		  		
+				$query = "SELECT id FROM pulmas_kylastajad WHERE username='$username' && passw=SHA1('$passw')";
+				$result = mysqli_query($connection, $query) or die("midagi läks valesti");
+			
+				$ridu = mysqli_num_rows($result);
+					if ( $ridu > 0) {
+						$_SESSION['user'] = $username;
+						header("Location: ?page=loomad");
+					}
+		  	}
+		} else {
+			 include_once 'views/login.html';
+		}
+	}
 
 	include_once('views/login.html');
 }
@@ -24,31 +54,58 @@ function logout(){
 }
 
 function kuva_puurid(){
-	// siia on vaja funktsionaalsust
-	$query = "SELECT DISTINCT(puur) FROM `pulmas_loomaaed`";
-    $result = mysqli_query($GLOBALS["connection"], $query) or die("$query - " . mysqli_error($GLOBALS["connection"]));
-    $result = mysqli_fetch_all($result);
-    foreach ($result as $array) {
-        foreach ($array as $innerArray) {
-            $puurid[$innerArray] = array();
-            $forEachResult = mysqli_query($GLOBALS["connection"], "SELECT `nimi`, `liik` FROM `pulmas_loomaaed` WHERE puur=" . (string)$innerArray)
-            or die("$query - " . mysqli_error($GLOBALS["connection"]));
-            $forEachResult = mysqli_fetch_all($forEachResult);
-            foreach ($forEachResult as $loomaNimiArrayna) {
-                foreach ($loomaNimiArrayna as $loomaNimi) {
-                    array_push($puurid[$innerArray], $loomaNimi);
-                }
-            }
-        }
-    }
-    $_SESSION["puurid"] = $puurid;
-	include_once('views/puurid.html');
-	
+	if (!empty($_SESSION['user'])) {
+		$query = "SELECT DISTINCT(puur) FROM `pulmas_loomaaed`";
+		$result = mysqli_query($GLOBALS["connection"], $query) or die("$query - " . mysqli_error($GLOBALS["connection"]));
+		$result = mysqli_fetch_all($result);
+		foreach ($result as $array) {
+			foreach ($array as $innerArray) {
+				$puurid[$innerArray] = array();
+				$forEachResult = mysqli_query($GLOBALS["connection"], "SELECT `nimi`, `liik` FROM `pulmas_loomaaed` WHERE puur=" . (string)$innerArray)
+				or die("$query - " . mysqli_error($GLOBALS["connection"]));
+				$forEachResult = mysqli_fetch_all($forEachResult);
+				foreach ($forEachResult as $loomaNimiArrayna) {
+					foreach ($loomaNimiArrayna as $loomaNimi) {
+						array_push($puurid[$innerArray], $loomaNimi);
+					}
+				}
+			}
+		}
+		$_SESSION["puurid"] = $puurid;
+		include_once('views/puurid.html');
+	} else {
+		include_once 'views/login.html';
+	}
 }
 
 function lisa(){
-	// siia on vaja funktsionaalsust (13. nädalal)
-	
+	if (empty($_SESSION['user'])) {
+		include_once 'views/login.html';
+	}
+	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		$errors = array();
+		if(empty($_POST['nimi'])) {
+	    	$errors[] = "nimi on puudu";
+		}
+		if(empty($_POST['puur'])) {
+			$errors[] = "puur on puudu";
+		}
+		$pilt = upload("liik");
+		if ($pilt == "") {
+			$errors[] = "pilt on puudu";
+		}
+	  	if (empty($errors)) {
+	  		global $connection;
+	  		$loomanimi = mysqli_real_escape_string($connection, $_POST["nimi"]);
+	  		$puurinr = mysqli_real_escape_string($connection, $_POST["puur"]);
+			$query = "INSERT INTO pulmas_loomaaed (nimi, liik, puur) VALUES ('$loomanimi', '$pilt', '$puurinr')";
+			$result = mysqli_query($connection, $query) or die("midagi läks valesti");;
+		
+			if (mysqli_insert_id($connection) > 0) {
+				header("Location: ?page=loomad");
+			}
+	  	} 
+	}
 	include_once('views/loomavorm.html');
 	
 }
