@@ -12,10 +12,10 @@ function connect_db(){
 }
 
 function logi(){
-	if (isset($_POST['user'])) {
-		include_once('views/puurid.html');
-	}
-	if (isset($_SERVER['REQUEST_METHOD'])) {
+	global $connection;
+	if (!empty($_SESSION["user"])) {
+        header("Location: ?page=loomad");
+	} else {
 		if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		  	$errors = array();
 		  	if (empty($_POST['user']) || empty($_POST['pass'])) {
@@ -26,17 +26,24 @@ function logi(){
 					$errors[] = "parool on puudu";
 				} 
 		  	} else {
-		  		global $connection;
 		  		$username = mysqli_real_escape_string($connection, $_POST["user"]);
 		  		$passw = mysqli_real_escape_string($connection, $_POST["pass"]);
 		  		
 				$query = "SELECT id FROM pulmas_kylastajad WHERE username='$username' && passw=SHA1('$passw')";
 				$result = mysqli_query($connection, $query) or die("midagi läks valesti");
 			
+				$queryresult = mysqli_fetch_assoc($result);
+				$role = $queryresult['roll'];
+			
 				$ridu = mysqli_num_rows($result);
 					if ( $ridu > 0) {
 						$_SESSION['user'] = $username;
-						header("Location: ?page=loomad");
+						$_SESSION['roll'] = $role;
+						if ($_SESSION['roll'] == 'admin') {
+							header("Location: ?page=lisa");	
+						} else {
+							header("Location: ?page=loomad");	
+						}
 					}
 		  	}
 		} else {
@@ -55,23 +62,15 @@ function logout(){
 
 function kuva_puurid(){
 	if (!empty($_SESSION['user'])) {
-		$query = "SELECT DISTINCT(puur) FROM `pulmas_loomaaed`";
-		$result = mysqli_query($GLOBALS["connection"], $query) or die("$query - " . mysqli_error($GLOBALS["connection"]));
-		$result = mysqli_fetch_all($result);
-		foreach ($result as $array) {
-			foreach ($array as $innerArray) {
-				$puurid[$innerArray] = array();
-				$forEachResult = mysqli_query($GLOBALS["connection"], "SELECT `nimi`, `liik` FROM `pulmas_loomaaed` WHERE puur=" . (string)$innerArray)
-				or die("$query - " . mysqli_error($GLOBALS["connection"]));
-				$forEachResult = mysqli_fetch_all($forEachResult);
-				foreach ($forEachResult as $loomaNimiArrayna) {
-					foreach ($loomaNimiArrayna as $loomaNimi) {
-						array_push($puurid[$innerArray], $loomaNimi);
-					}
-				}
+		global $connection;
+		$p= mysqli_query($connection, "select distinct(puur) as puur from pulmas_loomaaed order by puur asc");
+		$puurid=array();
+		while ($r=mysqli_fetch_assoc($p)){
+			$l=mysqli_query($connection, "SELECT * FROM pulmas_loomaaed WHERE  puur=".mysqli_real_escape_string($connection, $r['puur']));
+			while ($row=mysqli_fetch_assoc($l)) {
+				$puurid[$r['puur']][]=$row;
 			}
 		}
-		$_SESSION["puurid"] = $puurid;
 		include_once('views/puurid.html');
 	} else {
 		include_once 'views/login.html';
@@ -81,33 +80,93 @@ function kuva_puurid(){
 function lisa(){
 	if (empty($_SESSION['user'])) {
 		include_once 'views/login.html';
-	}
-	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		$errors = array();
-		if(empty($_POST['nimi'])) {
-	    	$errors[] = "nimi on puudu";
-		}
-		if(empty($_POST['puur'])) {
-			$errors[] = "puur on puudu";
-		}
-		$pilt = upload("liik");
-		if ($pilt == "") {
-			$errors[] = "pilt on puudu";
-		}
-	  	if (empty($errors)) {
-	  		global $connection;
-	  		$loomanimi = mysqli_real_escape_string($connection, $_POST["nimi"]);
-	  		$puurinr = mysqli_real_escape_string($connection, $_POST["puur"]);
-			$query = "INSERT INTO pulmas_loomaaed (nimi, liik, puur) VALUES ('$loomanimi', '$pilt', '$puurinr')";
-			$result = mysqli_query($connection, $query) or die("midagi läks valesti");;
-		
-			if (mysqli_insert_id($connection) > 0) {
-				header("Location: ?page=loomad");
+	}else {
+        if ($_SESSION["role"] == 'admin'){ 
+			if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+				$errors = array();
+				if(empty($_POST['nimi'])) {
+					$errors[] = "nimi on puudu";
+				}
+				if(empty($_POST['puur'])) {
+					$errors[] = "puur on puudu";
+				}
+				$pilt = upload("liik");
+				if ($pilt == "") {
+					$errors[] = "pilt on puudu";
+				}
+				if (empty($errors)) {
+					global $connection;
+					$loomanimi = mysqli_real_escape_string($connection, $_POST["nimi"]);
+					$puurinr = mysqli_real_escape_string($connection, $_POST["puur"]);
+					$query = "INSERT INTO pulmas_loomaaed (nimi, liik, puur) VALUES ('$loomanimi', '$pilt', '$puurinr')";
+					$result = mysqli_query($connection, $query) or die("midagi läks valesti");;
+				
+					if (mysqli_insert_id($connection) > 0) {
+						header("Location: ?page=loomad");
+					} else {
+						header("Location: ?page=loomavorm");
+					}
+				} 
 			}
-	  	} 
+		} else {
+            header("Location: ?page=loomad");
+        }
 	}
 	include_once('views/loomavorm.html');
+}
+
+function muuda(){
+	global $connection;
+	if (empty($_SESSION['user'])) {
+		header("Location: ?page=login");
+	}
+	if ($_SESSION['role'] == 'user') {
+		header("Location: ?page=loomad");
+	}
 	
+	if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['id']) && $_GET['id'] != "") {
+		$id = $_GET['id'];
+		$animal = hangi_loom(mysqli_real_escape_string($connection, $id)); 
+	} else {
+		header("Location: ?page=loomad");
+	}
+	if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['muuda'])) {
+	$errors = array();
+	if (empty($_POST['nimi'])) {
+		$errors[] = "nimi puudub";
+	}
+	if (empty($_POST['puur'])) {
+		$errors[] = "puur puudub";
+	}
+	
+	if (empty($errors)) {
+		$id = $_POST['muuda'];
+		$loom = hangi_loom(mysqli_real_escape_string($connection, $id));
+		
+		$loom['nimi'] = mysqli_real_escape_string($connection, $_POST["nimi"]);
+		$loom['puur'] = mysqli_real_escape_string($connection, $_POST["puur"]);
+		$liik = upload("liik");
+			if ($liik != "") {
+				$loom['liik'] = $liik;
+			}
+		}
+		$query = "UPDATE pulmas_loomaaed SET nimi='".$loom['nimi']."', liik='".$loom['liik']."', puur=".$loom['puur']."  WHERE id=".$id; 
+		$result = mysqli_query($connection, $query) or die("ei muutnud midagi");
+		header("location: ?page=loomad");
+	}
+	include_once('views/editvorm.html');
+}
+
+function hangi_loom($id) {
+	global $connection;
+	$query = "SELECT * FROM pulmas_loomaaed WHERE id=".$id;
+	$result = mysqli_query($connection, $query) or die("midagi läks valesti");
+ 	if ($animaldata = mysqli_fetch_assoc($result)) {
+		return $animaldata;
+	}
+	else {
+		header("Location: ?page=loomad");
+	}
 }
 
 function upload($name){
